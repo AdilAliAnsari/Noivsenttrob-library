@@ -1,0 +1,13 @@
+<svg width="40" height="40" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="noivsenttrob logo">
+  <defs>
+    <linearGradient id="spine-gold" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#E4C46B"/>
+      <stop offset="1" stop-color="#B4872F"/>
+    </linearGradient>
+  </defs>
+  <rect x="1" y="1" width="38" height="38" rx="9" fill="#12162A" stroke="#8A7148" stroke-width="1"/>
+  <!-- left page / left leg of N -->
+  <path d="M11 30 V10 L14.4 10 V25.4 L25.6 10 L29 10 V30 H25.6 V14.6 L14.4 30 Z" fill="url(#spine-gold)"/>
+  <!-- bookmark ribbon -->
+  <path d="M19.2 6 H22.2 V13 L20.7 11.6 L19.2 13 Z" fill="#C9A24B"/>
+</svg>

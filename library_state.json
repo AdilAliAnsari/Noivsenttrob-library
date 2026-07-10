@@ -1,0 +1,60 @@
+{
+  "books": [
+    {
+      "title": "Fluent Python",
+      "author": "Luciano Ramalho",
+      "isbn": "ISBN-001",
+      "is_issued": false,
+      "issued_to": null,
+      "issued_date": null
+    },
+    {
+      "title": "Clean Code",
+      "author": "Robert Martin",
+      "isbn": "ISBN-002",
+      "is_issued": true,
+      "issued_to": "M001",
+      "issued_date": "2026-07-10"
+    },
+    {
+      "title": "Python Tricks",
+      "author": "Dan Bader",
+      "isbn": "ISBN-003",
+      "is_issued": false,
+      "issued_to": null,
+      "issued_date": null
+    },
+    {
+      "title": "Automate the Boring Stuff",
+      "author": "Al Sweigart",
+      "isbn": "ISBN-004",
+      "is_issued": false,
+      "issued_to": null,
+      "issued_date": null
+    }
+  ],
+  "members": [
+    {
+      "type": "Student",
+      "name": "Anand",
+      "member_id": "M001",
+      "email": "anand@example.com",
+      "phone": "9876543210",
+      "books_held": [
+        "ISBN-002"
+      ],
+      "roll_no": "R101",
+      "department": null
+    },
+    {
+      "type": "Faculty",
+      "name": "Divya",
+      "member_id": "M002",
+      "email": "divya@example.com",
+      "phone": "9123456789",
+      "books_held": [],
+      "roll_no": null,
+      "department": "CSE"
+    }
+  ]
+}
