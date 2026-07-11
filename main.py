@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from starlette.middleware.sessions import SessionMiddleware
 import uvicorn
 
@@ -38,12 +38,22 @@ def on_startup():
     seed_if_empty()
 
 
+def render_frontend_index() -> HTMLResponse:
+    html_path = config.FRONTEND_DIR / "index.html"
+    html = html_path.read_text(encoding="utf-8")
+    configured = bool(config.CLERK_PUBLISHABLE_KEY and config.CLERK_JS_SRC)
+    html = html.replace("{{CLERK_PUBLISHABLE_KEY}}", config.CLERK_PUBLISHABLE_KEY)
+    html = html.replace("{{CLERK_JS_SRC}}", config.CLERK_JS_SRC)
+    html = html.replace("{{CLERK_CONFIGURED}}", "true" if configured else "false")
+    return HTMLResponse(html)
+
+
 if config.FRONTEND_DIR.exists():
     app.mount("/static", StaticFiles(directory=str(config.FRONTEND_DIR)), name="static")
 
     @app.get("/")
     def index():
-        return FileResponse(str(config.FRONTEND_DIR / "index.html"))
+        return render_frontend_index()
 else:
     @app.get("/")
     def index():

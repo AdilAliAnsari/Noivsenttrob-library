@@ -90,11 +90,16 @@ def seed_if_empty():
         return
 
     starter_books = [
-        ("ISBN-001", "Fluent Python", "Luciano Ramalho", "Programming", 2),
-        ("ISBN-002", "Clean Code", "Robert C. Martin", "Programming", 1),
-        ("ISBN-003", "Python Tricks", "Dan Bader", "Programming", 3),
-        ("ISBN-004", "Automate the Boring Stuff", "Al Sweigart", "Programming", 2),
-        ("ISBN-005", "The Pragmatic Programmer", "Hunt & Thomas", "Programming", 1),
+        ("978-0134757599", "Fluent Python", "Luciano Ramalho", "Programming", 2),
+        ("978-0132350884", "Clean Code", "Robert C. Martin", "Programming", 1),
+        ("978-1593279288", "Python Tricks", "Dan Bader", "Programming", 3),
+        ("978-1593275990", "Automate the Boring Stuff", "Al Sweigart", "Programming", 2),
+        ("978-0201616224", "The Pragmatic Programmer", "Andrew Hunt", "Programming", 1),
+        ("978-0743273565", "The Great Gatsby", "F. Scott Fitzgerald", "Classic", 2),
+        ("978-0061120084", "To Kill a Mockingbird", "Harper Lee", "Classic", 2),
+        ("978-1501171345", "Atomic Habits", "James Clear", "Self Help", 3),
+        ("978-1408855652", "Harry Potter and the Philosopher's Stone", "J.K. Rowling", "Fantasy", 2),
+        ("978-0345803481", "The Hobbit", "J.R.R. Tolkien", "Fantasy", 2),
     ]
     with db_cursor(commit=True) as cur:
         cur.executemany(

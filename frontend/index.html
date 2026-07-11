@@ -1,25 +1,636 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Noivsenttrob Library</title>
-  <link rel="stylesheet" href="/static/style.css" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Noivsenttrob Library Portal</title>
+  <!-- Google Fonts: Inter for clean UI, Fraunces for display style serif -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900&family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/style.css">
+  <!-- Clerk JavaScript SDK -->
+  <script>
+    window.__CLERK_CONFIG__ = {
+      publishableKey: "{{CLERK_PUBLISHABLE_KEY}}",
+      jsSrc: "{{CLERK_JS_SRC}}",
+      configured: {{CLERK_CONFIGURED}}
+    };
+  </script>
+  <script>
+    window.addEventListener("DOMContentLoaded", () => {
+      const cfg = window.__CLERK_CONFIG__ || {};
+      if (!cfg.configured || !cfg.publishableKey || !cfg.jsSrc) {
+        console.info("Clerk is not configured; skipping SDK initialization.");
+        return;
+      }
+
+      const script = document.createElement("script");
+      script.async = true;
+      script.crossOrigin = "anonymous";
+      script.setAttribute("data-clerk-publishable-key", cfg.publishableKey);
+      script.src = cfg.jsSrc;
+      script.onload = () => window.Clerk?.load?.();
+      document.head.appendChild(script);
+    });
+  </script>
 </head>
 <body>
-  <main class="card">
-    <h1>Noivsenttrob Library</h1>
-    <p>Your library management system is now live locally.</p>
-    <div class="actions">
-      <a class="btn" href="/docs" target="_blank">Open API Docs</a>
-      <a class="btn secondary" href="/api/books" target="_blank">View Books API</a>
+
+  <!-- ================= PORTAL WELCOME SCREEN ================= -->
+  <div id="portal-view" class="portal-wrapper">
+    <div class="portal-card">
+      <div class="portal-brand">
+        <div class="brand-logo">📖</div>
+        <span class="portal-eyebrow">Digital Desk & Storefront</span>
+        <h1>Noivsenttrob Library</h1>
+        <p class="portal-tagline">Access the public reader book repository or open the librarian's desk catalog and circulation board.</p>
+      </div>
+
+      <div class="portal-grid">
+        <div class="portal-option-card" id="btn-goto-storefront">
+          <div class="option-icon">🛍️</div>
+          <h2>Book Storefront</h2>
+          <p>Browse books catalog, filter by genres, check in-stock availability, and borrow/return items as a member.</p>
+          <span class="option-btn">Enter Storefront →</span>
+        </div>
+
+        <div class="portal-option-card" id="btn-goto-admin">
+          <div class="option-icon">⚙️</div>
+          <h2>Library Admin Desk</h2>
+          <p>Manage books catalog, register students and faculty, handle manual issuing and returns, view reports, and run SQL queries.</p>
+          <span class="option-btn">Open Admin Desk →</span>
+        </div>
+      </div>
+
+      <div class="portal-footer">
+        <span id="portal-user-status">Not signed in.</span>
+        <button class="btn btn-outline" id="portal-login-btn">Sign In / Setup Account</button>
+      </div>
     </div>
-    <ul>
-      <li>Books: /api/books</li>
-      <li>Members: /api/members</li>
-      <li>Circulation: /api/circulation</li>
-      <li>Reports: /api/reports</li>
-    </ul>
-  </main>
+  </div>
+
+  <!-- ================= MAIN APP VIEW ================= -->
+  <div id="app-view" class="app-layout hidden">
+    
+    <!-- TOP BAR -->
+    <header class="topbar">
+      <div class="topbar-left">
+        <button id="btn-back-to-portal" class="btn-back">
+          <span class="arrow">←</span> Portal
+        </button>
+        <div class="topbar-divider"></div>
+        <div>
+          <span class="eyebrow" id="app-sub-heading">Noivsenttrob</span>
+          <h1 id="app-main-heading">Book Storefront</h1>
+        </div>
+      </div>
+
+      <div class="topbar-right">
+        <!-- Toggle button between modes directly from header -->
+        <button id="btn-toggle-app-mode" class="btn btn-outline btn-mode-toggle">Switch to Admin Desk</button>
+        
+        <button id="themeToggle" class="btn-icon" aria-label="Toggle Theme">🌙</button>
+        
+        <div class="user-profile" id="user-profile-menu-trigger">
+          <img id="user-avatar" class="avatar" src="https://api.dicebear.com/7.x/pixel-art/svg?seed=Guest" alt="User avatar">
+          <div class="user-details">
+            <span id="user-name" class="user-name">Guest</span>
+            <span id="user-role" class="user-role">Visitor</span>
+          </div>
+          <span class="chevron">▾</span>
+          
+          <!-- Dropdown menu -->
+          <div class="profile-dropdown hidden" id="profile-dropdown-menu">
+            <div class="dropdown-header">
+              <strong id="dropdown-full-name">Guest User</strong>
+              <span id="dropdown-email" class="mono">visitor@library.local</span>
+            </div>
+            <div class="dropdown-divider"></div>
+            <a href="#" id="menu-btn-profile-loans" class="dropdown-item">My Borrowed Books</a>
+            <a href="#" id="menu-btn-logout" class="dropdown-item danger">Sign Out</a>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- CONTENT SHELL -->
+    <div id="app-body-container" class="app-body">
+      
+      <!-- ================= STOREFRONT VIEW ================= -->
+      <main id="view-storefront" class="storefront-content hidden">
+        <section class="hero">
+          <div class="hero-content">
+            <span class="hero-badge">📚 Ready to Borrow</span>
+            <h1>Borrow books. Skip the shelves.</h1>
+            <p>Select from our curated list of technical and non-technical books. Instant self-checkout for registered members.</p>
+          </div>
+        </section>
+
+        <!-- Catalog Toolbar -->
+        <div class="toolbar">
+          <div class="search-box">
+            <span class="search-icon">🔍</span>
+            <input type="text" id="storefront-search" class="search-input" placeholder="Search by title, author, or ISBN...">
+          </div>
+          <select id="storefront-genre-filter">
+            <option value="All">All Categories</option>
+          </select>
+          <label class="checkbox-label">
+            <input type="checkbox" id="storefront-available-only"> Available Only
+          </label>
+        </div>
+
+        <!-- Book Catalog Grid -->
+        <div class="book-grid" id="storefront-book-grid">
+          <!-- Dynamically populated -->
+        </div>
+      </main>
+
+      <!-- ================= ADMIN DESK VIEW ================= -->
+      <div id="view-admin" class="admin-layout hidden">
+        
+        <!-- Bookshelf Sidebar Tabs -->
+        <aside class="shelf">
+          <div class="shelf-brand">
+            <span>📚</span>
+          </div>
+          <nav class="shelf-nav">
+            <!-- rotated spines: vertical text, slides up slightly on hover -->
+            <button class="spine active" data-tab="admin-books">
+              <span>Books</span>
+            </button>
+            <button class="spine" data-tab="admin-members">
+              <span>Members</span>
+            </button>
+            <button class="spine" data-tab="admin-loans">
+              <span>Loans</span>
+            </button>
+            <button class="spine" data-tab="admin-reports">
+              <span>Reports</span>
+            </button>
+            <button class="spine" data-tab="admin-sql">
+              <span>SQL Console</span>
+            </button>
+          </nav>
+          <div class="shelf-footer-decor">
+            <span>Desk</span>
+          </div>
+        </aside>
+
+        <!-- Admin Active Content Area -->
+        <main class="content">
+          
+          <!-- TAB: BOOKS MANAGEMENT -->
+          <section id="tab-admin-books" class="admin-tab-content">
+            <div class="tab-header">
+              <h2>Books Inventory</h2>
+              <button class="btn primary" id="btn-add-book-modal">+ Add Book</button>
+            </div>
+            
+            <div class="toolbar">
+              <input type="text" id="admin-books-search" class="search-input" placeholder="Filter books by title or author...">
+            </div>
+
+            <div class="card table-container">
+              <table id="admin-books-table">
+                <thead>
+                  <tr>
+                    <th>ISBN</th>
+                    <th>Title</th>
+                    <th>Author</th>
+                    <th>Genre</th>
+                    <th>Copies</th>
+                    <th>Issued</th>
+                    <th>Available</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <!-- Dynamically populated -->
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <!-- TAB: MEMBERS MANAGEMENT -->
+          <section id="tab-admin-members" class="admin-tab-content hidden">
+            <div class="tab-header">
+              <h2>Registered Members</h2>
+              <button class="btn primary" id="btn-add-member-modal">+ Register Member</button>
+            </div>
+            
+            <div class="toolbar">
+              <input type="text" id="admin-members-search" class="search-input" placeholder="Filter members by name or ID...">
+            </div>
+
+            <div class="card table-container">
+              <table id="admin-members-table">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Phone</th>
+                    <th>Type</th>
+                    <th>Detail</th>
+                    <th>Loans</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <!-- Dynamically populated -->
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <!-- TAB: CIRCULATION (LOANS) -->
+          <section id="tab-admin-loans" class="admin-tab-content hidden">
+            <h2>Circulation Desk</h2>
+            
+            <div class="grid grid-2">
+              <!-- Issue Form Card -->
+              <div class="card">
+                <h3>Issue Book</h3>
+                <form id="admin-issue-form" class="compact-form">
+                  <div class="field">
+                    <label for="issue-isbn">Book ISBN</label>
+                    <input type="text" id="issue-isbn" required placeholder="e.g. ISBN-001">
+                  </div>
+                  <div class="field">
+                    <label for="issue-member-id">Member ID</label>
+                    <input type="text" id="issue-member-id" required placeholder="e.g. M001">
+                  </div>
+                  <button type="submit" class="btn primary btn-block">Issue Book</button>
+                </form>
+              </div>
+
+              <!-- Return Form Card -->
+              <div class="card">
+                <h3>Return Book</h3>
+                <form id="admin-return-form" class="compact-form">
+                  <div class="field">
+                    <label for="return-isbn">Book ISBN</label>
+                    <input type="text" id="return-isbn" required placeholder="e.g. ISBN-001">
+                  </div>
+                  <div class="field">
+                    <label for="return-member-id">Member ID</label>
+                    <input type="text" id="return-member-id" required placeholder="e.g. M001">
+                  </div>
+                  <button type="submit" class="btn primary btn-block">Return Book</button>
+                </form>
+              </div>
+            </div>
+
+            <div class="tab-header" style="margin-top: 28px;">
+              <h3>Active Loans</h3>
+            </div>
+
+            <div class="card table-container">
+              <table id="admin-loans-table">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Title</th>
+                    <th>ISBN</th>
+                    <th>Member Name</th>
+                    <th>Member ID</th>
+                    <th>Issued Date</th>
+                    <th>Due Date</th>
+                    <th>Fine</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <!-- Dynamically populated -->
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <!-- TAB: REPORTS & ANALYTICS -->
+          <section id="tab-admin-reports" class="admin-tab-content hidden">
+            <div class="tab-header">
+              <h2>Library Reports</h2>
+              <a href="/api/reports/export.csv" class="btn primary" id="btn-export-csv">📥 Export Loans CSV</a>
+            </div>
+
+            <!-- Stats Dashboard Grid -->
+            <div class="grid grid-4" style="margin-bottom: 24px;">
+              <div class="card stat-card">
+                <span class="eyebrow">Total Titles</span>
+                <span class="value" id="stat-titles">0</span>
+              </div>
+              <div class="card stat-card">
+                <span class="eyebrow">Available Copies</span>
+                <span class="value ok" id="stat-copies-available">0</span>
+              </div>
+              <div class="card stat-card">
+                <span class="eyebrow">Active Loans</span>
+                <span class="value" id="stat-active-loans">0</span>
+              </div>
+              <div class="card stat-card">
+                <span class="eyebrow">Overdue Loans</span>
+                <span class="value danger" id="stat-overdue-loans">0</span>
+              </div>
+            </div>
+
+            <div class="grid grid-2">
+              <!-- Top Books Card -->
+              <div class="card">
+                <h3>Most Borrowed Titles</h3>
+                <div class="list-wrapper" id="report-top-books">
+                  <!-- Dynamically populated list -->
+                </div>
+              </div>
+              
+              <!-- Genre Breakdown Card -->
+              <div class="card">
+                <h3>Books by Genre</h3>
+                <div class="genre-chart-container" id="report-genres">
+                  <!-- Dynamically populated visual bar ratios -->
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- TAB: SQL QUERY CONSOLE -->
+          <section id="tab-admin-sql" class="admin-tab-content hidden">
+            <div class="tab-header">
+              <h2>SQL Command Console</h2>
+              <span class="badge available">Connected to SQLite</span>
+            </div>
+            
+            <p style="margin-top:-10px; font-size:13px; color:var(--parchment-dim);">
+              Direct SQL access to <code>noivsenttrob.db</code>. Write queries to query tables (<code>books</code>, <code>members</code>, <code>loans</code>, <code>users</code>) or edit data.
+            </p>
+
+            <div class="card sql-console-card">
+              <div class="sql-templates">
+                <strong>Templates:</strong>
+                <button class="btn small sql-tpl-btn" data-sql="SELECT * FROM books ORDER BY added_at DESC;">List Books</button>
+                <button class="btn small sql-tpl-btn" data-sql="SELECT * FROM members;">List Members</button>
+                <button class="btn small sql-tpl-btn" data-sql="SELECT l.id, b.title, m.name, l.issued_date, l.due_date FROM loans l JOIN books b ON b.isbn = l.isbn JOIN members m ON m.member_id = l.member_id WHERE l.returned_date IS NULL;">List Active Loans</button>
+                <button class="btn small sql-tpl-btn" data-sql="SELECT sqlite_version();">SQL Version</button>
+              </div>
+              
+              <div class="field" style="margin-top: 10px;">
+                <textarea id="sql-query-input" rows="5" class="sql-textarea" placeholder="SELECT * FROM books;"></textarea>
+              </div>
+              
+              <div class="modal-actions">
+                <button class="btn" id="btn-clear-sql">Clear</button>
+                <button class="btn primary" id="btn-execute-sql">Execute Query</button>
+              </div>
+            </div>
+
+            <div id="sql-output-panel" class="sql-output-panel hidden">
+              <h3>Execution Result</h3>
+              <div id="sql-output-message" class="sql-output-message"></div>
+              <div class="card table-container" id="sql-output-table-wrapper">
+                <table id="sql-output-table">
+                  <thead>
+                    <tr id="sql-output-cols"></tr>
+                  </thead>
+                  <tbody id="sql-output-rows"></tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+
+        </main>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ================= MODALS ================= -->
+  
+  <!-- SIGN IN & AUTHENTICATION MODAL -->
+  <div class="modal-backdrop hidden" id="modal-auth">
+    <div class="modal">
+      <h3>Sign In / Join Library</h3>
+      <p class="tagline">Log in with a mock account to test library capabilities immediately, or use GitHub/Google OAuth.</p>
+      
+      <!-- Tab toggle for auth modes -->
+      <div class="auth-tabs">
+        <button class="auth-tab-btn active" id="auth-tab-mock">Mock Developer Login</button>
+        <button class="auth-tab-btn" id="auth-tab-oauth">OAuth Providers</button>
+        <button class="auth-tab-btn" id="auth-tab-clerk">Clerk</button>
+      </div>
+
+      <!-- Content: Mock login -->
+      <div id="auth-content-mock" class="auth-tab-content-panel">
+        <form id="mock-login-form">
+          <div class="field">
+            <label for="mock-member-id">Member ID / Profile</label>
+            <select id="mock-member-id" required>
+              <option value="">-- Select Mock Account --</option>
+              <option value="M001">Anand (Student Member ID: M001)</option>
+              <option value="M002">Divya (Faculty Member ID: M002)</option>
+              <option value="NEW_STUDENT">Create New Mock Student Account</option>
+              <option value="NEW_FACULTY">Create New Mock Faculty Account</option>
+              <option value="ADMIN_BYPASS">Login as Administrator / Librarian</option>
+            </select>
+          </div>
+          
+          <div id="mock-extra-fields" class="hidden">
+            <div class="field">
+              <label for="mock-new-name">Full Name</label>
+              <input type="text" id="mock-new-name" placeholder="John Doe">
+            </div>
+            <div class="field">
+              <label for="mock-new-email">Email Address</label>
+              <input type="email" id="mock-new-email" placeholder="john@example.com">
+            </div>
+            <div class="field">
+              <label for="mock-new-phone">Phone Number (10 digits)</label>
+              <input type="tel" id="mock-new-phone" placeholder="9876543210" pattern="\d{10}" maxlength="10">
+            </div>
+            <div class="field id-fields" id="mock-roll-field">
+              <label for="mock-new-roll">Roll Number</label>
+              <input type="text" id="mock-new-roll" placeholder="R102">
+            </div>
+            <div class="field id-fields hidden" id="mock-dept-field">
+              <label for="mock-new-dept">Department</label>
+              <input type="text" id="mock-new-dept" placeholder="CSE">
+            </div>
+          </div>
+
+          <button type="submit" class="btn primary btn-block">Log In Now</button>
+        </form>
+      </div>
+
+      <!-- Content: OAuth login -->
+      <div id="auth-content-oauth" class="auth-tab-content-panel hidden">
+        <div class="oauth-buttons">
+          <a href="/auth/login/google" class="oauth-btn google">
+            <svg viewBox="0 0 24 24" width="20" height="20">
+              <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+              <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+              <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+              <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+            </svg>
+            Continue with Google
+          </a>
+          
+          <a href="/auth/login/github" class="oauth-btn github">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+              <path d="M12 2A10 10 0 0 0 2 12c0 4.42 2.87 8.17 6.84 9.5.5.08.66-.23.66-.5v-1.69c-2.77.6-3.36-1.34-3.36-1.34-.46-1.16-1.11-1.47-1.11-1.47-.9-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.9 1.52 2.34 1.07 2.91.83.09-.65.35-1.09.63-1.34-2.22-.25-4.55-1.11-4.55-4.92 0-1.11.38-2 1.03-2.71-.1-.25-.45-1.29.1-2.64 0 0 .84-.27 2.75 1.02.79-.22 1.65-.33 2.5-.33.85 0 1.71.11 2.5.33 1.91-1.29 2.75-1.02 2.75-1.02.55 1.35.2 2.39.1 2.64.65.71 1.03 1.6 1.03 2.71 0 3.82-2.34 4.66-4.57 4.91.36.31.69.92.69 1.85V21c0 .27.16.59.67.5C19.14 20.16 22 16.42 22 12A10 10 0 0 0 12 2z"/>
+            </svg>
+            Continue with GitHub
+          </a>
+        </div>
+      </div>
+
+      <!-- Content: Clerk login -->
+      <div id="auth-content-clerk" class="auth-tab-content-panel hidden">
+        <div id="clerk-sign-in"></div>
+      </div>
+      
+      <div class="modal-actions">
+        <button class="btn" id="btn-close-auth-modal">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- BOOK DETAIL MODAL -->
+  <div class="modal-backdrop hidden" id="modal-book-detail">
+    <div class="modal book-detail-modal">
+      <div class="modal-close-trigger" id="btn-close-book-detail">×</div>
+      <div class="book-detail-wrapper">
+        <div class="book-detail-cover">
+          <div id="detail-cover-placeholder" class="cover-canvas">📖</div>
+        </div>
+        <div class="book-detail-info">
+          <span class="detail-genre" id="detail-genre">Technology</span>
+          <h2 id="detail-title">Book Title</h2>
+          <span class="detail-author" id="detail-author">By Author Name</span>
+          <span class="detail-isbn mono" id="detail-isbn">ISBN: ---</span>
+          <p id="detail-description" class="detail-description">Description goes here.</p>
+          <div class="detail-status-bar">
+            <span class="badge" id="detail-status-badge">In Stock</span>
+            <span id="detail-copies-count" class="detail-copies-info">2 copies available</span>
+          </div>
+          <div class="detail-checkout-zone">
+            <!-- Member checkout details -->
+            <div id="detail-member-borrow-view" class="hidden">
+              <p>Borrow this book as <strong id="borrower-name-display">Anand</strong>:</p>
+              <button class="btn primary btn-block" id="btn-borrow-book-action">Borrow Now</button>
+            </div>
+            <div id="detail-guest-borrow-view">
+              <p style="font-size:12px; color:var(--parchment-dim);">You must register or log in as a member to borrow this book.</p>
+              <button class="btn btn-outline btn-block" id="btn-login-to-borrow">Log In to Borrow</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ADD BOOK MODAL -->
+  <div class="modal-backdrop hidden" id="modal-add-book">
+    <div class="modal">
+      <h3 id="book-modal-title">Add New Book</h3>
+      <form id="add-book-form">
+        <div class="field">
+          <label for="book-isbn">ISBN</label>
+          <input type="text" id="book-isbn" required placeholder="e.g. ISBN-006">
+        </div>
+        <div class="field">
+          <label for="book-title">Book Title</label>
+          <input type="text" id="book-title" required placeholder="e.g. Design Patterns">
+        </div>
+        <div class="field">
+          <label for="book-author">Author</label>
+          <input type="text" id="book-author" required placeholder="e.g. Erich Gamma">
+        </div>
+        <div class="field">
+          <label for="book-genre">Genre / Category</label>
+          <input type="text" id="book-genre" placeholder="e.g. Software Design">
+        </div>
+        <div class="field">
+          <label for="book-copies">Copies in Library</label>
+          <input type="number" id="book-copies" required min="1" value="1">
+        </div>
+        
+        <div class="modal-actions">
+          <button type="button" class="btn" id="btn-close-book-modal">Cancel</button>
+          <button type="submit" class="btn primary">Save Book</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- REGISTER MEMBER MODAL -->
+  <div class="modal-backdrop hidden" id="modal-add-member">
+    <div class="modal">
+      <h3>Register New Member</h3>
+      <form id="add-member-form">
+        <div class="field">
+          <label for="member-id-input">Member ID</label>
+          <input type="text" id="member-id-input" required placeholder="e.g. M003">
+        </div>
+        <div class="field">
+          <label for="member-name-input">Full Name</label>
+          <input type="text" id="member-name-input" required placeholder="e.g. Rajesh Kumar">
+        </div>
+        <div class="field">
+          <label for="member-email-input">Email Address</label>
+          <input type="email" id="member-email-input" required placeholder="e.g. rajesh@example.com">
+        </div>
+        <div class="field">
+          <label for="member-phone-input">Phone Number (10 digits)</label>
+          <input type="tel" id="member-phone-input" required placeholder="e.g. 9876543210" pattern="\d{10}" maxlength="10">
+        </div>
+        <div class="field">
+          <label for="member-type-input">Member Classification</label>
+          <select id="member-type-input" required>
+            <option value="Member">General Member</option>
+            <option value="Student">Student (3-book limit, late fines)</option>
+            <option value="Faculty">Faculty (10-book limit, no fines)</option>
+          </select>
+        </div>
+        
+        <!-- Conditional fields -->
+        <div id="member-extra-fields" class="hidden">
+          <div class="field id-fields" id="reg-roll-field">
+            <label for="member-roll-input">Roll Number</label>
+            <input type="text" id="member-roll-input" placeholder="R102">
+          </div>
+          <div class="field id-fields hidden" id="reg-dept-field">
+            <label for="member-dept-input">Department</label>
+            <input type="text" id="member-dept-input" placeholder="CSE">
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="btn" id="btn-close-member-modal">Cancel</button>
+          <button type="submit" class="btn primary">Register</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MY LOANS MODAL -->
+  <div class="modal-backdrop hidden" id="modal-my-loans">
+    <div class="modal" style="max-width: 600px;">
+      <div class="tab-header">
+        <h3>My Borrowed Books</h3>
+        <button class="btn btn-outline small" id="btn-close-my-loans-modal">Close</button>
+      </div>
+      <p style="font-size:12px; color:var(--parchment-dim); margin-top:-10px;">Below are your currently checked out and overdue titles.</p>
+      
+      <div class="list-wrapper" id="my-loans-list" style="max-height: 400px; overflow-y: auto;">
+        <!-- Dynamically populated list -->
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST NOTIFICATION CONTAINER -->
+  <div id="toasts"></div>
+
+  <!-- Scripts -->
+  <script src="/static/app.js"></script>
 </body>
 </html>

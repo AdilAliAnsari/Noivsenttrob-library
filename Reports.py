@@ -88,3 +88,30 @@ def export_csv(user=CurrentUser):
         media_type="text/csv",
         headers={"Content-Disposition": "attachment; filename=noivsenttrob_loans.csv"},
     )
+
+
+from pydantic import BaseModel
+
+class SqlRequest(BaseModel):
+    query: str
+
+@router.post("/sql")
+def execute_sql(req: SqlRequest, user=CurrentUser):
+    try:
+        from Dp import get_conn
+        conn = get_conn()
+        cur = conn.cursor()
+        cur.execute(req.query)
+        description = cur.description
+        if description:
+            columns = [col[0] for col in description]
+            rows = [list(r) for r in cur.fetchall()]
+            conn.close()
+            return {"success": True, "columns": columns, "rows": rows, "row_count": len(rows)}
+        else:
+            conn.commit()
+            rowcount = cur.rowcount
+            conn.close()
+            return {"success": True, "columns": [], "rows": [], "row_count": rowcount, "message": f"Query executed successfully. Affected rows: {rowcount}"}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
